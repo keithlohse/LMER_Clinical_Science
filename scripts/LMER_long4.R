@@ -116,7 +116,7 @@ print(g2)
 
 ##---------------------------------------------------
 # Jittering Points on a Graph
-# We have non interval/ratio data, we will often have overlapping datapoints
+# We have non-interval/ratio data, we will often have overlapping datapoints
 # The Grade variable, for instance, only takes four values
 g1 <- ggplot(data = MPLS.LS, aes(x = grade, y = read)) + geom_point(shape = 1) + myX + myY
 g2 <- g1 + stat_summary(fun.y = mean, geom = "line", lwd = 1.5, linetype = 5)
@@ -199,14 +199,14 @@ print(g3)
 levels(MPLS.LS$eth2) <- c("Non-White", "White")
 g1 <- ggplot(data = MPLS.LS, aes(x = grade, y = read, group = subid)) + geom_line()
 g2 <- g1 + stat_summary(fun.y = mean, geom = "line", lwd = 2, aes(group = 1))
-g3 <- g2 + facet_grid(eth2 ~ gen2) + myX + myY
+g3 <- g2 + facet_grid(eth2 ~ gen) + myX + myY
 print(g3)
 
 # If we don't want a spagetti plot and instead want a more classic line plot,
 # then we can run code like the following
 g1 <- ggplot(data = MPLS.LS, aes(x = grade, y = read)) +  myY + myX
-g2 <- g1 + stat_summary(fun.y = mean, aes(line = gen2), geom = "line")
-g3 <- g2 + stat_summary(fun.y = mean, aes(shape = gen2), geom = "point", size = 3)
+g2 <- g1 + stat_summary(fun.y = mean, aes(line = gen), geom = "line")
+g3 <- g2 + stat_summary(fun.y = mean, aes(shape = gen), geom = "point", size = 3)
 g4 <- g3 + theme(legend.position = c(.78,.3))
 g5 <- g4 + scale_linetype(name = "Gender") + scale_shape(name = "Gender", solid = FALSE)
 g6 <- g5 + facet_grid(. ~ eth2)
