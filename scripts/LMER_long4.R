@@ -23,7 +23,7 @@ setwd("C:/Currant/LMER_reading_group/")
 # Let's make sure that file is our data folder:
 list.files("C:/Currant/LMER_reading_group/data")
 # We can load the data file into R
-load("./data/MPLS.LS.Rdata")
+load("C:/Currant/LMER_reading_group/data/MPLS.LS.Rdata")
 
 head(MPLS.LS)
 # Let's start with creating a spagetti plot:

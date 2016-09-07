@@ -223,7 +223,7 @@ head(MPLS.LS)
 ddply(MPLS.LS,~grade+gen,summarise,
       meanRead=mean(read, na.rm=TRUE))
 
-# We can also condition or calculations on variables we create.
+# We can also condition our calculations on variables we create.
 # For instance, we can use the cut_number() function from ggplot2
 # to create a "median split" of the attendance variable:
 MPLS.LS$att.split<-cut_number(MPLS.LS$att, n=2)
