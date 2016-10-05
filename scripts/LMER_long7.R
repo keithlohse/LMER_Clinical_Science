@@ -7,7 +7,11 @@ has   <- wants %in% rownames(installed.packages())
 if(any(!has)) install.packages(wants[!has])
 
 library("ggplot2");library("lme4"); library("plyr"); library("dplyr");
-library("nlme");library('lmerTest');library("AICcmodavg")
+library("nlme"); library("AICcmodavg")
+
+# library('lmerTest')
+# In order for the AICcmodavg functions to work, we need to exclude the 
+# lmerTest package for today.
 
 
 ##-------------------------------------------------------------
@@ -20,32 +24,54 @@ getwd()
 setwd("C:/Currant/LMER_reading_group/")
 # let's see what is in the data folder
 list.files("C:/Currant/LMER_reading_group/data")
-#
+
+load("./data/MPLS.LS.Rdata")
+
+
+##-------------------------------------------------------------
+## Multimodel Inference and Akaike's Information Criterion
 ##
 
-## Chapter 7 R code.
-##
-
-## Select grade 5 data.
+## First we will take a subset of the data where grade = 5.
 mysample <- subset(MPLS.LS, grade == 5)
-## Fit true Model 0.
+mysample
+
+## We can fit the "true" Model 0 (because there is no relationship between
+# attendance and reading level at grade 5).
 model.0 <- lm(read ~ 1, mysample)
-## Simulate Sample A.
-set.seed(1)                             # Reader can reproduce the results.
-sim.dv <- unlist(simulate(model.0))     # Generate response.
+summary(model.0)
+
+plot(mysample$att, mysample$read)
+abline(h=mean(mysample$read))
+
+## From these data, we will simulate Sample A.
+set.seed(1)                             
+# Setting the seed produces consistent results.
+sim.dv <- unlist(simulate(model.0)) 
+# Simulate generates data based on the model, unlist "flattens" this information
+# in to a vector.
+# We then combine this simulated outcome datat with the attendence variable in 
+# a new dataframe.
 sample.a <- data.frame(read = sim.dv, att = mysample$att)
 head(sample.a)
 
+# In our new sample of data, we can fit different models:
+## Linear
 model.1a <- lm(sample.a$read ~ sample.a$att)
+## ... and quadratic
 model.2a <- lm(sample.a$read ~ sample.a$att + I(sample.a$att ^ 2))
+## ... and from these linear models we will extract the deviances and 
+## combine them into a dataframe.
 dev.a <- data.frame(deviance = c(deviance(model.1a), deviance(model.2a)))
 rownames(dev.a) <- c("Model.1a", "Model.2a")
 dev.a
+# We now have two models, Model 1 and Model 2, where model 1 is "less false"
+# than model 2 because it is estimating one less extraneous parameter. 
 
 model.1a$coefficients
 head(model.1a$fitted.values)
 
-## Generate Sample B.
+## Next, we will repeat the same process in a new model:
 set.seed(13)
 sim.dv <- unlist(simulate(model.0))
 sample.b <- data.frame(read = sim.dv, att = mysample$att)
@@ -55,14 +81,23 @@ model.2b <- lm(sample.b$read ~ sample.b$att + I(sample.b$att ^ 2))
 dev.b <- data.frame(deviance = c(deviance(model.1b), deviance(model.2b)))
 rownames(dev.b) <- c("Model.1b", "Model.2b")
 dev.b
+# As above, you can see that the more complicated model will produce the smaller
+# deviance by default.
 
+# Next consider the following the following calculation of predictive deviance 
+# in each model. This deviance is "predictive" because the fitted values from
+# model A are being used to predict the observed values from Sample B.
 N <- nrow(sample.b)
 prdev.1b <- N * (log(2 * pi * sum((sample.b$read - model.1a$fitted.values) ^ 2)) + 1)
 prdev.2b <- N * (log(2 * pi * sum((sample.b$read - model.2a$fitted.values) ^ 2)) + 1)
 prdev.b <- data.frame(preddev = c(prdev.1b, prdev.2b))
 rownames(prdev.b) <- c("Model 1", "Model 2")
 prdev.b
+# Notice that now the situation is reversed, Model 1 (the simpler model), 
+# has a smaller predictive deviance than Model 2!
 
+# Next, let's assume that another sample is generated based on the true model
+# I.e., no relationship between Reading in Grade 5 and Attendence.
 set.seed(21)
 sample.c <- data.frame(read = unlist(simulate(model.0)), att = mysample$att)
 model.1c <- lm(sample.c$read ~ sample.c$att)
@@ -70,14 +105,33 @@ model.2c <- lm(sample.c$read ~ sample.c$att + I(sample.c$att ^ 2))
 dev.c <- data.frame(deviance = c(deviance(model.1c), deviance(model.2c)))
 rownames(dev.c) <- c("Model.1c", "Model.2c")
 dev.c
-
+# As above, the more complicated model is going to produce the smallest deviance
+# in a given sample.
+# When we look at predictive deviance, however:
 prdev.1c <- N * (log(2 * pi * sum((sample.c$read - model.1b$fitted.values) ^ 2)) + 1)
 prdev.2c <- N * (log(2 * pi * sum((sample.c$read - model.2b$fitted.values) ^ 2)) + 1)
 prdev.c <- data.frame(preddev = c(prdev.1c, prdev.2c))
 rownames(prdev.c) <- c("Model 1", "Model 2")
 prdev.c
+# ... we can again see that the simpler model (which is closer to the truth) 
+# produces the smallest predictive deviances. 
 
-## Create grade5.
+# Now, although the formula for the AIC is relatively simple:
+### AIC = Deviance + 2*k
+### where k = the number of estimated parameters
+# some rather sophisticated mathematics have shown that: Given a large sample
+# size and the assumption of normality, the AIC is an unbiased estimator of 
+# the average predictive deviance. 
+# Conceptually, this means that, out of all of the tested models, the model with
+# the lowest as AIC is most likely to produce the smallest deviance in a new
+# sample of data.
+# (But remember that other, better fitting models might not have been tested.)
+
+
+
+##-------------------------------------------------------------
+## Extension of AIC to LMER
+## First, we will center the Grade variable on Grade 5.
 MPLS.LS$grade5 <- MPLS.LS$grade - 5
 ## Estimate models.
 model.1 <- lmer(read ~ grade5 + risk2 + (grade5 | subid), MPLS.LS, REML = FALSE)

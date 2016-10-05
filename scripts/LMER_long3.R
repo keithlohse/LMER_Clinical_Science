@@ -24,6 +24,10 @@ list.files("C:/Currant/LMER_reading_group/data")
 
 # The MPLS data file should be saved in the 'data' folder in your directory
 MPLS<-read.table("./data/MPLSdata.txt", header = TRUE, sep="\t", na.string="-99") 
+# Note that thus datafile is the "altered" datafile from Long's 2012 book.
+# Originally, there were two datafiles, one used in chapters 3-5 and one in 6-11
+# (see Long's Errata). To make things simpler, we will use only the altered data
+# so that our numbers align with later chapters.
 tail(MPLS)
 
 # We can also use "file.choose()" to get a popup window
@@ -67,12 +71,12 @@ summary(MPLS)
 ##---------------------------------------------------
 # Descriptive Statistics
 mean(MPLS$read.8, na.rm=TRUE)
-mymeans <- mean(MPLS[ ,2:5], na.rm = TRUE)
+mymeans <- mean(MPLS[ ,8:11], na.rm = TRUE)
 mymeans
 # Does Long's code work anymore?
 # Try the colMeans() function instead
-colMeans(MPLS[ ,c(2,5)], na.rm=TRUE)
-mean(MPLS[ ,5], na.rm = TRUE)
+colMeans(MPLS[ ,c(8,11)], na.rm=TRUE)
+mean(MPLS[ ,8], na.rm = TRUE)
 # We can also do this more elegantly using other functions below
 
 # Long's SD code did not work for me either
@@ -80,13 +84,13 @@ mean(MPLS[ ,5], na.rm = TRUE)
 # mysds
 
 # We can, however get correlation matrices...
-table1<-cor(MPLS[ ,c(2,3,5)], use = "complete.obs")
+table1<-cor(MPLS[ ,c(8,9,10,11)], use = "complete.obs")
 table1
 # .. and covariance matrices
-cov(MPLS[ ,2:5], use = "complete.obs")
+cov(MPLS[ ,8:11], use = "complete.obs")
 # again, we are subsetting MPLS to take ALL rows, but only columns 2 through 5
 
-mymiss <- colSums(is.na(MPLS[ ,2:5]))
+mymiss <- colSums(is.na(MPLS[ ,8:11]))
 mean(is.na(MPLS$read.8))
 # Note that Long has colMeans here, but I think that colSums is more helpful
 # mymiss <- colMeans(is.na(MPLS[ ,2:5]))
@@ -124,7 +128,7 @@ by_risk
 # Reshaping Data
 
 # The MPLS data is currently in wide format, suppose we want it in long format?
-MPLS.L <- reshape(data = MPLS, varying = 2:5, v.names = "read", timevar = "grade",
+MPLS.L <- reshape(data = MPLS, varying = 8:11, v.names = "read", timevar = "grade",
                   times = 5:8, idvar = "subid", direction = "long")
 head(MPLS.L, n = 10)
 head(MPLS)

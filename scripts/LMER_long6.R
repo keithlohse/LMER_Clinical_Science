@@ -7,7 +7,7 @@ has   <- wants %in% rownames(installed.packages())
 if(any(!has)) install.packages(wants[!has])
 
 library("ggplot2");library("lme4"); library("plyr"); library("dplyr");
-library("nlme");#library('lmerTest');library("AICcmodavg")
+library("nlme");library('lmerTest');library("AICcmodavg")
 
 
 ##-------------------------------------------------------------
@@ -108,6 +108,7 @@ dev.func <- function(B1) {4 * log(2 * pi * 49) + (1 / 49) *
 # the calculated deviance for that slope given the known intercept and variance.
 dev.store <- mdply(data.frame(B1 = seq(from = 13, to = 17, by = 0.1)),
                    dev.func)
+dev.store
 colnames(dev.store)[2] <- "deviance"
 head(dev.store)
 # How many deviances do we have?
