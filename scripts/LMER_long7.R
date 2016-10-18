@@ -133,20 +133,34 @@ prdev.c
 ## Extension of AIC to LMER
 ## First, we will center the Grade variable on Grade 5.
 MPLS.LS$grade5 <- MPLS.LS$grade - 5
-## Estimate models.
+## Next, we will estimate models our different models with different numbers of fixed effects.
 model.1 <- lmer(read ~ grade5 + risk2 + (grade5 | subid), MPLS.LS, REML = FALSE)
 model.2 <- lmer(read ~ grade5 + eth2  + (grade5 | subid), MPLS.LS, REML = FALSE)
 model.3 <- lmer(read ~ grade5 + risk2 + eth2 + (grade5 | subid), MPLS.LS, REML = FALSE)
-## Compute AIC.
+## For each model, we can compute the AIC.
 mynames <- paste("M", as.character(1:3), sep = "")
 myaic <- aictab(cand.set = list(model.1, model.2, model.3),
                 modnames = mynames, sort = FALSE, second.ord = FALSE)
 as.data.frame(myaic)[ ,1:3]
-
+# You can see that the "myaic" object contrinas our model names, the number of 
+# parameters (k; which includes fixed and random effects), and the AIC for each
+# model.
+# We can also use these functions to compute the AIC corrected or AICc:
 myaicc <- aictab(cand.set = list(model.1, model.2, model.3),
                  modnames = mynames, sort = FALSE)
-as.data.frame(myaicc)[ ,1:3]
+# Note that the "second.ord" argument is no longer included to get AICc.
+as.data.frame(myaicc)[ ,1:4]
+# One of features of the AIC/AICc that we are most interested in is the change 
+# in AIC or "delta". You can think of this as either the relative improvement 
+# compared to the worst fitting model (Model_i - WorstModel) or the difference 
+# compared to the best fitting model (Model_i - BestModel). 
 
+# Although there are prescibed values of "effect-size" for the change in AIC,
+# the simplest thing to do in practice is adopt a cut-off before model
+# comparison begins (e.g., a change of 2 points in the AICc) and apply that to 
+# deciding among your best models. Just because this is the simplest approach
+# however, does not mean that it is best or only approach. Other work has been
+# done to show the "weight of the evidence" based on the change in the AIC.
 myaicc <- aictab(list(model.1, model.2, model.3), modnames = mynames)
 print(myaicc, LL = FALSE)
 
@@ -154,13 +168,21 @@ confset(cand.set = list(model.1, model.2, model.3), modnames = mynames)
 confset(cand.set = list(model.1, model.2, model.3), modnames = mynames, level = 0.75)
 
 evidence(myaicc)
+# The weight of hte evidence is a probability scaling of AIC, and as such is a 
+# more continuous way of thinking about model comparisons than the application 
+# of hard and fast cut-offs. 
 
-## Save data frame, exclude logLik.
+## Weight of the Evidence ------------------------------------------------------
+# First, we will duplicate our dataframe, excluding logLik.
 myaicc2 <- as.data.frame(myaicc)[ ,-7]
 myaicc2$Eratio <- max(myaicc2$AICcWt) / myaicc2$AICcWt
 ## Print with rounding to two decimal places.
 data.frame(Model = myaicc2$Modnames, round(myaicc2[ ,-1], 2))
+# Note that the Eratio is the weight of the evidence for the best fitting model
+# divided by the weight of the evidence for a given model. Thus, the lowest and
+# "best" Eratio is 1. 
 
+# Below, we will do the same calculations with additional models (M1 to M6).
 model.1 <- lmer(read ~ grade5 + risk2 + (grade5 | subid), MPLS.LS, REML = FALSE)
 model.2 <- lmer(read ~ grade5 + eth2  + (grade5 | subid), MPLS.LS, REML = FALSE)
 model.3 <- lmer(read ~ grade5 + risk2 + eth2 + (grade5 | subid), MPLS.LS, REML = FALSE)
@@ -169,6 +191,8 @@ model.5 <- lmer(read ~ grade5 * eth2  + (grade5 | subid), MPLS.LS, REML = FALSE)
 model.6 <- lmer(read ~ grade5 * risk2 + grade5 * eth2 + (grade5 | subid),
                 MPLS.LS, REML = FALSE)
 
+# For each of these six models, we will now extract the AICc and compute the 
+# Eratio to get the "weight of the evidence for each model.
 mynames <- paste("M", as.character(1:6), sep = "")
 mymodels <- list(model.1, model.2, model.3, model.4, model.5, model.6)
 myaicc <- as.data.frame(aictab(cand.set = mymodels, modnames = mynames,
@@ -176,46 +200,58 @@ myaicc <- as.data.frame(aictab(cand.set = mymodels, modnames = mynames,
 myaicc$Eratio <- max(myaicc$AICcWt) / myaicc$AICcWt
 data.frame(Modnames = myaicc$Modnames, round(myaicc[,-1], 2))
 
-## Define components for later use.
+# Define components for later use.
 myx <- scale_x_continuous(breaks = 5:8)
 theme_set(theme_bw())
-## Create bar graphs.
+# Create bar graphs.
+## Note there was a problem with Long's code here (either because R or ggplot 2
+## got updated). The problem is that the vector that we are trying to "summarize" 
+## with geom_bar() is already summarized. 
+## To fix this, I have stat=identity to geom_bar().
+## Bar graph of weight of evidence.
 g1 <- ggplot(myaicc, aes(x = Modnames, y = AICcWt)) + ylab("Weight")
-g2 <- g1 + geom_bar(fill = "grey80", colour = "black") + xlab("Model")
+g2 <- g1 + geom_bar(fill = "grey80", colour = "black", stat="identity") + xlab("Model")
 g3 <- g2 + scale_y_continuous(limits = c(0,1))
 print(g3)
-
+## Bar graph of evidence ratio.
 g1 <- ggplot(myaicc, aes(x = Modnames, y = Eratio)) + ylab("Ratio")
-g2 <- g1 + geom_bar(fill = "grey80", colour = "black") + xlab("Model")
+g2 <- g1 + geom_bar(fill = "grey80", colour = "black", stat="identity") + xlab("Model")
 g3 <- g2 + geom_hline(aes(yintercept = 1), linetype = 2)
 print(g3)
 
 ## Sort data frame.
 myaicc2 <- myaicc[order(myaicc$AICc), ]
+myaicc2
 ## Bar graph of weight of evidence.
-r1 <- ggplot(myaicc2, aes(x = I(as.character(Modnames)), y = AICcWt)) + ylab("Weight")
-r2 <- r1 + geom_bar(fill = "grey80", colour = "black") + xlab("Model")
-r3 <- r2 + scale_y_continuous(limits = c(0,1))
+## There was also an error in Long's code here (probably due to updates) and
+# the only way I could work around it was creating a new variable called Names2
+myaicc2$Names2<-factor(myaicc2$Modnames, levels=c("M1","M4","M3","M6","M2","M5"))
+r1 <- ggplot(myaicc2, aes(x = Names2, y = AICcWt)) + ylab("Weight")
+r2 <- r1 + geom_bar(fill = "grey80", colour = "black", stat="identity") + 
+    xlab("Model")
+r3 <- r2 + scale_y_continuous(limits = c(0,1))+scale_x_discrete()
 print(r3)
 ## Bar graph of evidence ratio.
-s1 <- ggplot(myaicc2, aes(x = I(as.character(Modnames)), y = Eratio)) + ylab("Weight")
-s2 <- s1 + geom_bar(fill = "grey80", colour = "black") + xlab("Model")
+s1 <- ggplot(myaicc2, aes(x = Names2, y = Eratio)) + ylab("Weight")
+s2 <- s1 + geom_bar(fill = "grey80", colour = "black", stat="identity") + xlab("Model")
 s3 <- s2 + geom_hline(aes(yintercept = 1), linetype = 2)
 print(s3)
 
+## Confidence Intervals and Key Data for Write Ups -----------------------------
 myaicc <- as.data.frame(aictab(cand.set = mymodels, modnames = mynames)[ ,-c(5,7)])
 myaicc$Eratio <- max(myaicc$AICcWt) / myaicc$AICcWt
 data.frame(Modnames = myaicc$Modnames, round(myaicc[ ,-1], 2))
 
 confset(cand.set = mymodels, modnames = mynames, level = 0.99)
 
-mytab <- as.data.frame(summary(model.1)@coefs)
+mytab <- as.data.frame(summary(model.1)$coefficients)
 mytab
 
 mytab$LCI <- mytab$Estimate - 2 * mytab$"Std. Error"
 mytab$UCI <- mytab$Estimate + 2 * mytab$"Std. Error"
 round(mytab[ ,-3], 2)
 
+# Plotting Predictions of the Fixed Effect Model -------------------------------
 ## Create data frame for graphing.
 plotdata <- model.1@frame
 plotdata$pred <- model.matrix(model.1) %*% fixef(model.1)
@@ -224,12 +260,13 @@ plotdata$grade <- plotdata$grade + 5
 g1 <- ggplot(plotdata, aes(x = grade, y = read, linetype = risk2))
 g2 <- g1 + stat_summary(fun.y = "mean", geom = "point", cex = 2)
 g3 <- g2 + stat_summary(aes(y = pred), fun.y = "mean", geom = "line")
-g4 <- g3 + myx + opts(legend.position = c(0.54, 0.3), legend.title = theme_blank())
+g4 <- g3 + myx # + theme(legend.position = c(0.54, 0.3), legend.title = theme_bw())
 print(g4)
+## -----------------------------------------------------------------------------
 
-summary(model.3)@coefs
+summary(model.3)$coefficients
 
-mytab2 <- as.data.frame(summary(model.4)@coefs)
+mytab2 <- as.data.frame(summary(model.4)$coefficients)
 mytab2$LCI <- mytab2$Estimate - 2 * mytab2$"Std. Error"
 mytab2$UCI <- mytab2$Estimate + 2 * mytab2$"Std. Error"
 mytab2
@@ -244,9 +281,12 @@ myaicc <- as.data.frame(aictab(mymodels, mynames))[ ,-c(5,7)]
 myaicc$Eratio <- max(myaicc$AICcWt) / myaicc$AICcWt
 data.frame(Modnames = myaicc$Modnames, round(myaicc[ ,-1], 2))
 
+
+## Parametric Bootstrap of the Evidence Ratio ----------------------------------
 model.1 <- lmer(read ~ grade5 + risk2 + (grade5 | subid), MPLS.LS, REML = FALSE)
 model.2 <- lmer(read ~ grade5 + eth2 + (grade5 | subid), MPLS.LS, REML = FALSE)
-model.3 <- lmer(read ~ grade5 + risk2 + eth2 + (grade5 | subid), MPLS.LS, REML = FALSE)
+model.3 <- lmer(read ~ grade5 + risk2 + eth2 + (grade5 | subid), 
+                MPLS.LS, REML = FALSE)
 model.4 <- lmer(read ~ grade5 * risk2 + (grade5 | subid), MPLS.LS, REML = FALSE)
 model.5 <- lmer(read ~ grade5 * eth2 + (grade5 | subid), MPLS.LS, REML = FALSE)
 model.6 <- lmer(read ~ grade5 * risk2 + grade5 * eth2 + (grade5 | subid),
@@ -257,31 +297,37 @@ myaicc <- as.data.frame(aictab(mymodels, mynames))[ ,-c(5,7)]
 myaicc$Eratio <- max(myaicc$AICcWt) / myaicc$AICcWt
 myaicc
 
-boot.func <- function(){
-    ## Simulate response vector based on best fitting Model 1.
-    simdv <- simulate(model.1)
-    ## Fit models using refit() and save aictab() output.
-    mynames <- paste("M", as.character(1:6), sep = "")
-    mymodels <- list(refit(model.1, simdv[ ,1]), refit(model.2, simdv[ ,1]),
-                     refit(model.3, simdv[ ,1]), refit(model.4, simdv[ ,1]),
-                     refit(model.5, simdv[ ,1]), refit(model.6, simdv[ ,1]))
-    myaicc <- aictab(mymodels, mynames, sort = F)
-    ## Compute bootstrap evidence ratio. Denominator is initial best model (Model 1).
-    b.eratio <- max(myaicc$AICcWt) / myaicc$AICcWt[1]
-}
-
-set.seed(1)
-B <- 999
-mystorage0 <- rdply(.n = B, .expr = boot.func, .progress = "text")
-
-## Extract and sort bootstrap ratios.
-mystorage.s <- sort(mystorage0[ ,2])
-## Compute empirical quantiles.
-a <- c(.1, .05, .01)                          # a values.
-b <- (B + 1) * (1 - a)                        # b values.
-myquant <- as.data.frame(mystorage.s[b]) # Save and display quantiles.
-colnames(myquant) <- "quantile"
-rownames(myquant) <- c("90%", "95%", "99%")
-myquant
-
-## summary(model.1)@AICtab$BIC
+## Unfortunately I have not been able to the boot function code to work in  
+## R 3.2.3
+# > sessionInfo()
+# R version 3.2.3 (2015-12-10)
+# Platform: x86_64-w64-mingw32/x64 (64-bit)
+# Running under: Windows 7 x64 (build 7601) Service Pack 1
+# boot.func <- function(){
+#     ## Simulate response vector based on best fitting Model 1.
+#     simdv <- simulate(model.1)
+#     ## Fit models using refit() and save aictab() output.
+#     mynames <- paste("M", as.character(1:6), sep = "")
+#     mymodels <- list(refit(model.1, simdv[ ,1]), refit(model.2, simdv[ ,1]),
+#                      refit(model.3, simdv[ ,1]), refit(model.4, simdv[ ,1]),
+#                      refit(model.5, simdv[ ,1]), refit(model.6, simdv[ ,1]))
+#     myaicc <- aictab(mymodels, mynames, sort = F)
+#     ## Compute bootstrap evidence ratio. Denominator is initial best model (Model 1).
+#     b.eratio <- max(myaicc$AICcWt) / myaicc$AICcWt[1]
+# }
+# 
+# set.seed(1)
+# B <- 999
+# mystorage0 <- rdply(.n = B, .expr = boot.func, .progress = "text")
+# 
+# ## Extract and sort bootstrap ratios.
+# mystorage.s <- sort(mystorage0[ ,2])
+# ## Compute empirical quantiles.
+# a <- c(.1, .05, .01)                          # a values.
+# b <- (B + 1) * (1 - a)                        # b values.
+# myquant <- as.data.frame(mystorage.s[b]) # Save and display quantiles.
+# colnames(myquant) <- "quantile"
+# rownames(myquant) <- c("90%", "95%", "99%")
+# myquant
+# 
+# ## summary(model.1)@AICtab$BIC
