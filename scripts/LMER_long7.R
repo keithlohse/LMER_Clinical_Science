@@ -34,7 +34,7 @@ load("./data/MPLS.LS.Rdata")
 
 ## First we will take a subset of the data where grade = 5.
 mysample <- subset(MPLS.LS, grade == 5)
-mysample
+head(mysample)
 
 ## We can fit the "true" Model 0 (because there is no relationship between
 # attendance and reading level at grade 5).
@@ -142,7 +142,7 @@ mynames <- paste("M", as.character(1:3), sep = "")
 myaic <- aictab(cand.set = list(model.1, model.2, model.3),
                 modnames = mynames, sort = FALSE, second.ord = FALSE)
 as.data.frame(myaic)[ ,1:3]
-# You can see that the "myaic" object contrinas our model names, the number of 
+# You can see that the "myaic" object contains our model names, the number of 
 # parameters (k; which includes fixed and random effects), and the AIC for each
 # model.
 # We can also use these functions to compute the AIC corrected or AICc:
@@ -232,7 +232,7 @@ r2 <- r1 + geom_bar(fill = "grey80", colour = "black", stat="identity") +
 r3 <- r2 + scale_y_continuous(limits = c(0,1))+scale_x_discrete()
 print(r3)
 ## Bar graph of evidence ratio.
-s1 <- ggplot(myaicc2, aes(x = Names2, y = Eratio)) + ylab("Weight")
+s1 <- ggplot(myaicc2, aes(x = Names2, y = Eratio)) + ylab("Evidence Ratio")
 s2 <- s1 + geom_bar(fill = "grey80", colour = "black", stat="identity") + xlab("Model")
 s3 <- s2 + geom_hline(aes(yintercept = 1), linetype = 2)
 print(s3)
@@ -246,6 +246,8 @@ confset(cand.set = mymodels, modnames = mynames, level = 0.99)
 
 mytab <- as.data.frame(summary(model.1)$coefficients)
 mytab
+
+summary(model.1)
 
 mytab$LCI <- mytab$Estimate - 2 * mytab$"Std. Error"
 mytab$UCI <- mytab$Estimate + 2 * mytab$"Std. Error"
