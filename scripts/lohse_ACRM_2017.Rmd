@@ -1,0 +1,375 @@
+---
+title: "Longitudinal Data Analysis for the Clinical Sciences"
+author: | 
+    | Keith Lohse, PhD
+    | Department of Health, Kinesiology, and Recreation
+    | Department of Physical Therapy and Athletic Training
+    | University of Utah
+output: pdf_document
+---
+
+# Introduction
+
+In this document, I introduce the tools and methods for conducting longitudinal data analysis in R. 
+
+# Importing data and Quality Assurance (QA)
+
+First, we will check to which folder the working directory is set. You can think of the working directory as the folder on the computer in which R will look for files and in which R will store files that you create. Running the "get working directory" command should return the My Documents folder (or similar).
+  
+```{r setup, echo=FALSE}
+library("knitr")
+opts_knit$set(root.dir = "C:/Users/u6015231/Documents/GitHub/LMER_Clinical_Science/")
+```
+```{r, echo=2}
+setwd("C:/Users/u6015231/Documents/")
+getwd()
+```
+
+Outside of R, we created a project folder called "LMER_Clinical_Science". Let's now set our working directory to that folder. The exact code will be different on your computer, but it should be something like:
+
+```{r}
+setwd("C:/Users/u6015231/Documents/GitHub/LMER_Clinical_Science/")
+```
+
+Now that we have set the working directory to our project folder. We can see what files are inside. We can also see what files are inside the "data" sub-folder by including the "./" characters in our code. Including the "." means to append all of the characters that follow to the address of the working directory. This can be a big time saver, because we don't want to be retyping the working directory all of the time.
+
+```{r}
+list.files()
+# These are all of the files/folders in the working directory.
+list.files("./data/")
+# These are all of the files in the data sub-folder of the working directory.
+```
+
+Next, we will want to open several packages whose functions we will want to use. Packages contain custom written functions that allow you perform tasks beyond the basic capabilities of R. All of the packages we will use have validated and peer-reviewed documentation, so we can be sure these functions are working correctly. 
+
+We will need to install these packages the very first time we want to use them. After a package is installed, you can import its functions into R using the library() function. Because I already have these packages installed on my machine, I have "commented out" the installation code using a "#". To install these packages, simply delete the "#" and run the code as written. 
+
+If you are new to coding, comments are an author's way of telling the computer that everything that comes after the symbol is not code to run. Thus, by using comments, you can leave useful notes to yourself and others!
+
+```{r}
+# install.packages("ggplot2"); install.packages("lme4"); 
+# install.packages("dplyr"); install.packages("AICcmodavg")
+library("ggplot2");library("lme4");library("dplyr");library("AICcmodavg")
+```
+
+Next, we will read in a "dummy" dataset that I created. This data emulates data structures in the Brain Recovery Core Database. See Lang et al. *J Neurologic Physical Therapy*. 2011 and Lohse et al. *Arch Phys Med Rehabil*. 2016.
+
+```{r}
+DATA<-read.csv("./data/data_LOHSE_EXAMPLE.csv", header = TRUE) 
+DATA[1:20,c(1,2,4,5,6,8,10,12)]
+# Note that I am calling the dataframe "DATA", but you can call it anything.
+# For the ease of reading, I am also only printing select columns and the 
+# first 20 rows of the data frame.
+```
+
+Clearly the raw data is a bit of a mess, but notice NAs in multiple rows and columns. Some participants are missing data for entire assessments, others are missing data for individual timepoints.
+
+Even though this dataset is relatively small, it can be good for us to get a quick summary of the data by using either the head() function (which lets us look at the first six rows) or the str() function (which tells us the structure of the dataframe variable by variable).
+
+```{r}
+# Note that now I am looking at all of the columns, but only the first six rows.
+head(DATA)
+# The structure function does not show data, but instead shows properties of 
+# the different columns/variables.
+str(DATA)
+```
+
+\newpage
+# Creating Basic Plots
+
+We are now ready to create some basic plots using the ggplot2 package. In these visualizations, we will be plotting Berg Balance Scale scores over time with a separate panel for each subject. We will get into all of the details of how to generate this kind of plot later, but in brief, this plot is composed of several different elements: 
+
+* Our x- and y-axes are always time from outpatient admission and *Berg Balance Scale* (BBS) scores, respectively.
+* In each plot, we have separate data points and lines connecting them (ggplot refers to these objects as *geoms*).
+* Over the top of these data points, we plot the linear model for the line of best fit.
+* Finally, all of these elements are *faceted* so that each facet plots the data for a different participant.
+
+
+```{r}
+myX<-scale_x_continuous(name = "Time (Months from Outpatient Admission)")
+myY<-scale_y_continuous(name = "Berg Balance Scale")
+g1<-ggplot(data=DATA, aes(x = time, y = BERG, group = subID))+geom_line()
+g2<-g1+geom_point()+facet_wrap(~subID)+myX+myY
+g3<-g2 + stat_smooth(method=lm, se=FALSE)
+plot(g3)
+```
+
+Note that participants have different amounts of data collected at different time points. This is one of the strengths of the linear mixed-effects regression (LMER) approach. If we were using RM ANOVA, we would need to throw out any participants with missing data! Using LMER, however, we can include participants with missing data and participants whose data were collected at different times.  
+
+These visualizations are obviously important for publications, but they also help us understand our data better throughout our analysis. As such, sometimes we will spend a lot of time creating a publication quality visualization, whereas other times we will want some quick and simple visualizations that help us understand the data better.  
+
+There are also some basic functions that help us understand our data better and get summary statistics quickly. Specifically, we will use the head(), tail(), and summary() functions.
+
+```{r} 
+head(DATA) # Peak at the top rows.
+tail(DATA) # Peak at the bottom rows.
+summary(DATA$time) # Using the summary function on a numeric variable
+summary(DATA$event_name) # Using the summary function on a factor variable
+```
+
+\newpage
+# Creating Tidy Data 
+The goal of *tidy* data is to structure our data in such a way that the data are easy for a computer to work with. In general, this means that our data are in "long" format, where every row is a separate observation and every column is a unique dependent variable (see Wickham, *J Stat Soft*, 2014). Our practice dataset already adheres to these principles. For your own data (or other data you might encounter "in the wild"), you will want to start collecting data in this long format or learn how to transform data from wide to long format. (Note that long format is also often referred to as "person-period" format because each row is a unique time-point for each person, whereas wide format is also referred to as "person" format because each row is a unique person, but the time-points are in different columns.)
+
+Next, we are going to filter out data to remove some unwanted observations. Specifically, we can create a new dataset that removes the row for the acute admission time-point from each participant. We are doing this because we already have separate columns in our dataset that give the acute admission scores. These variables are *static* variables, meaning that they do not change overtime for our individuals. All acute admission time points are coded as -1 in the *time* variable, so we can remove those data points like this:
+
+```{r}
+DAT2<-subset(DATA, time != -1)
+head(DAT2)
+```
+
+Note that in our new dataset (*DAT2*) the time variable only ranges from 0 to 6 months.
+
+```{r}
+summary(as.factor(DAT2$time))
+# We are using the as.factor() funtion to treat time as a factor even though it
+# is numeric. As such, the summary function returns the different categories of 
+# time (top row) and the number of observations in each category (bottom row).
+```
+
+\newpage
+# Visualizing Longitudinal Data
+## Spaghetti Plots 
+Longitudinal data analysis is all about seeing how our data change over time. As such, most of the time we will be plotting our dependent variable on the y-axis and time on the x-axis and using different symbols/colors to denote different groups of participants. 
+One of the most common plots for achieving this function is the *spaghetti plot* which plots the dependent variable over time with a separate line for each participant (in a shape vaguely reminiscent of spaghetti!). We will create these plots for all of our dependent variables: the *Berg Balance Scale* (BBS), the *10-meter Walk Test* (10mWT), and the *Action Research Arm Test* (ARAT). 
+
+### Berg Balance Scale
+```{r, message=FALSE, fig.height=4, fig.width=4, fig.align="center"}
+myX<-scale_x_continuous(name = "Time (Months from Outpatient Admission)")
+myY<-scale_y_continuous(name = "Berg Balance Scale")
+g1<-ggplot(data=DAT2, aes(x=time, y = BERG, group=subID))+geom_line()+myX+myY
+g2<-g1+theme_bw()
+print(g2)
+```
+
+\newpage
+### 10 Meter Walk Test
+```{r, message=FALSE, fig.height=4, fig.width=4, fig.align="center"}
+myX<-scale_x_continuous(name = "Time (Months from Outpatient Admission)")
+myY<-scale_y_continuous(name = "Ten Meter Walk Test (m/s)")
+g1<-ggplot(data=DAT2, aes(x=time, y = X10mSpeed, group=subID))+geom_line()+myX+myY
+g2<-g1+theme_bw()
+print(g2)
+```
+
+\newpage
+### Action Research Arm Test
+```{r, message=FALSE, fig.height=4, fig.width=4, fig.align="center"}
+myX<-scale_x_continuous(name = "Time (Months from Outpatient Admission)")
+myY<-scale_y_continuous(name = "Action Research Arm Test")
+g1<-ggplot(data=DAT2, aes(x=time, y = ARAT, group=subID))+geom_line()+myX+myY
+g2<-g1+theme_bw()
+print(g2)
+```
+
+\newpage
+## Faceted/Lattice Plots
+Similar to the spaghetti plot, we can create *faceted* plots (also known as *lattice* plots) in which different participants or groups are shown in different facets of the same plot. Grouping our data into facets can be a very effective way to visualize data, especially when our datasets are large (which can make spaghetti plots very hard to interpret). In the plots below, we will create facets for individual participants. These plots can be great, because they show individual participant data very clearly... but these plots are also limited because it can be difficult to meaningfully plot data from a lot of participants at once. As such, in large datasets, we will sometimes select a subset of participants and then create a facet plot for that subset. 
+
+### Berg Balance Scale
+```{r, message=FALSE}
+myX<-scale_x_continuous(breaks = 0:12, 
+                        name = "Time (Months from OutPatient Admission)")
+myY<-scale_y_continuous(name = "Berg Balance Scale")
+g5<-ggplot(data=DAT2, aes(x = time, y = BERG, group = subID))+geom_line()
+g6<-g5+geom_point()+facet_wrap(~subID)+myX+myY
+plot(g6)
+```
+
+\newpage
+### Action Research Arm Test
+```{r, message=FALSE}
+myX<-scale_x_continuous(breaks = 0:12, 
+                        name = "Time (Months from OutPatient Admission)")
+myY<-scale_y_continuous(name = "ARAT")
+g1<-ggplot(data=DAT2, aes(x = time, y = ARAT, group = subID))+geom_line()
+g2<-g1+geom_point()+facet_wrap(~subID)+myX+myY
+plot(g2)
+```
+
+\newpage
+### 10 Meter Walk Test
+```{r, message=FALSE}
+myX<-scale_x_continuous(breaks = 0:12, 
+                        name = "Time (Months from OutPatient Admission)")
+myY<-scale_y_continuous(name = "10m Walk Test")
+g7<-ggplot(data=DAT2, aes(x = time, y = X10mSpeed, group = subID))+geom_line()
+g8<-g7+geom_point()+facet_wrap(~subID)+myX+myY
+plot(g8)
+```
+
+\newpage
+## Conditional Plots
+We can also make aspects of our plots conditional on some properties of the data. For instance, we can make the shape of our data-points conditional on whether
+or not a participant went to an inpatent rehabilitation facility (IRF).
+
+In this case, we can do this by adding an additional "shape" argument to our graphing code.
+
+```{r, fig.height=4, fig.width=7, fig.align="center"}
+# First we will create a factor out of the IRF variable (which is coded as 
+# 1s and 0s).
+DAT2$IRF_Category<-factor(DAT2$IRF)
+# Note the the additional shape argument in aes()
+myX<-scale_x_continuous(name = "Time (Months from Outpatient Admission)")
+myY<-scale_y_continuous(name = "Berg Balance Scale Score", limits=c(0,60))
+g1 <- ggplot(data = DAT2, aes(x = time, y = BERG, group=subID, 
+                              shape = IRF_Category)) + geom_point()
+# We now specify that the linear fit for each participant is conditional on 
+# on whether or not that participant went to an IRF previously.
+g2 <- g1 + geom_smooth(method=lm, se=FALSE, aes(color=IRF_Category)) + myX + myY
+g3 <- g2 + theme_bw()
+print(g2)
+```
+
+\newpage
+# Building Statistical Models
+In this section, we will start building statistical models using the BBS data as our example. The best way to think about these statistical models is as a way of formalizing what we see in the visualizations. Ideally, statistical output should be confirming patterns that we can see in the figures! But first, a word about the technical details of longitudinal data analysis...   
+
+## Comparing Linear Mixed-Effect Regression to Traditional Linear Models 
+In a traditional *general linear models* (GLM), all of our data are independent (i.e., one data point per person). Statistically, we can write this as a linear model like:
+$$y_i = B_0 + B_1 (TIME_i) + \epsilon_i$$
+
+Each subject's actual score ($y_i$) is the result of an intercept ($B_0$) and that constant is modified based on their grade (the slope, $B_1$ multiplied by their grade). The intercept and slope are collectively referred to as our statistical *MODEL*. Our model is not going to be perfect, however, so we need to include an error term ($\epsilon_i$). Good models will have small errors and thus be a better approximation of our *DATA*. As such, we can more generally say that:
+$$DATA = MODEL + ERROR$$
+
+The code for LMER is essentially the same as GLM, except that we will be using lmer() instead of lm(). (Note that you need lme4 installed to have access to the lmer() function.) Conceptually, LMER is a lot like GLM but we need to 'partition' our variance into different sources. 
+
+$$y_{ij} = B_0 + U_{0j} + B_1(TIME_{ij}) + U_{1j} + \epsilon_{ij}$$
+
+In LMER, we now have data indexed by time point (i) and by participant (j). Each datapoint, $y_{ij}$, can still be described by the overall intercept and slope, $B_0$ and $B_1$, plus a random effect for each subject, $U_{0j}$ and $U_{1j}$.
+
+Note that these random-effects could be positive or negative, because they represent how this participant deviates from the norm. Thus, in LMER our *MODEL* is the combination of our fixed-effects (all of the $B$'s) and the random-effects (all of the $U_j$'s). However, *DATA = MODEL + ERROR* still applies, so we need to include a random-error term for each data point, $\epsilon_{ij}$.
+
+In summary, we have the following terms in our DATA:
+
+* The *MODEL* includes fixed effects and random effects.
+* *Fixed-Effects* are the group-level $B$'s, these effects parallel the traditional main-effects and interactions that you have probably encountered in other statistical analyses. 
+* *Random-Effects* are the participant-level $U_j$'s that remove statistical dependency from our data. (This is bit of a simplification, but you can think of not including the appropriate random-effects like running a between-subjects ANOVA when you should be running a repeated-measures ANOVA.)
+* The *ERRORS*, or more specifically *Random Errors*, are the difference between our *MODEL*'s predictions and the actual *DATA*.
+
+We can write this as:
+$$y_{ij} = B_0 + U_{0j} + (B_1+ U_{1j})*(TIME_{ij}) + E_{ij}$$
+Or in the equivalent form:
+$$y_{ij} = B_0 + B_1(TIME_i) + (U_0 + U_1(TIME_i)|Subject)$$
+This second form more closely resembles the R syntax. Note that we are not including the $j$ subscript here anymore, but it is still implied by the model because we are saying that there are different random-effects ($U_0$ and $U_1$) for a given subject. 
+
+\newpage
+## Building Linear Mixed-Effect Models
+### The "Random Intercepts" Model
+In our Random Intercepts model, we estimate a constant (intercept) for each participant and the overall constant. This overall constant is the *fixed-effect*, and individual deviations away from this constant are our *random-effects*. (In writing up a study, we would refer to this as a random-effect of subject/participant.)
+$$y_{ij} = B_0 + U_{0j} + \epsilon_{ij}$$
+True to it's name, the Random Intercepts model is going to estimate a flat line for each person. Each line will be different, however, because our random-effect of subject means that we are estimating a unique intercept for each person. This intercept will be equal to mean for each participant, because the mean is the value that will produce the smallest errors.
+
+```{r}
+B0<-lmer(BERG~1+(1|subID),data=DAT2, REML=FALSE)
+summary(B0)
+```
+
+\newpage
+### Plot of Random-Intercepts Model for the Berg Balance Scale
+```{r, echo=FALSE, warning=FALSE}
+myX<-scale_x_continuous(breaks = 0:12, 
+                        name = "Time (Months from OutPatient Admission)")
+myY<-scale_y_continuous(name = "Berg Balance Scale")
+g1<-ggplot(data=DAT2, aes(x = time, y = BERG, group = subID))
+g2<-g1+geom_point()+facet_wrap(~subID)+myX+myY
+# The values below are the models predictions that I extracted using the 
+# fitted() function.
+# fitted(B0)
+pred<-data.frame(subID=c("p01","p02","p03","p04","p05","p06","p07","p08","p09",
+                         "p10","p11","p12"),
+                fitted=c(19.78, 4.54, 41.84, 42.99, 19.64, 13.47, 42.01, 24.74, 
+                         49.11, 49.85, 9.73, 48.87))
+
+g3<-g2+geom_hline(aes(yintercept=fitted), pred)
+plot(g3)
+```
+Note that in the plot above, each dot represents the actual data for each participant. The lines in each panel, conversely, represent the model's predictions for each participant. Because *B0* is the random-intercepts model, our model is predicting a different flat line for each participant.
+
+\newpage
+### The "Random Intercept - Fixed Slope" Model
+In our Random Intercept - Fixed Slope model, we estimate an intercept for each participant and an overall slope, but **the slope is the same for each person**. The overall intercepts and slopes are the fixed-effects. The prediction lines for each participant can have different heights (due to the random-intercepts), but all of these lines have the same slope (because there is no random-effect for the slope).
+
+$$y_{ij} = B_0 + U_{0j} + B_1*(TIME_{ij}) + \epsilon_{ij}$$
+
+```{r}
+B1<-lmer(BERG~1+time+(1|subID),data=DAT2, REML=FALSE)
+summary(B1)
+```
+
+\newpage
+### Plot of Random-Intercepts Fixed Slope Model for the Berg Balance Scale
+```{r, echo=FALSE, warning=FALSE}
+# We can get the individual intercepts by extracting the random-effects 
+# from the model, B1.
+dd <- ranef(B1)[["subID"]]
+colnames(dd)[1] <- "Intercepts"
+# But these random-effects are deviations from the fixed-effect, so we need
+# to add the fixed-effect back into these deviates.
+dd$Intercepts<-dd$Intercepts+27.2915
+dd <- cbind(subID=rownames(dd),dd)
+# However, the slope is fixed for everyone, so we can just repeat that slope 
+# equal to the number of participants we have.
+dd$Slopes <- c(rep(2.0017, 12)) 
+dd
+
+myX<-scale_x_continuous(breaks = 0:12, 
+                        name = "Time (Months from OutPatient Admission)")
+myY<-scale_y_continuous(name = "Berg Balance Scale")
+g1<-ggplot(data=DAT2, aes(x = time, y = BERG, group = subID))
+g2<-g1+geom_point()+facet_wrap(~subID)+myX+myY
+g3<-g2+geom_abline(aes(intercept=Intercepts, slope=Slopes), dd)
+plot(g3)
+```
+Note that in the plot above, each dot represents the actual data for each participant. The lines in each panel, conversely, represent the model's predictions for each participant. Because *B1* is the random-intercepts fixed slope model, our model is predicting a different intercept for each participant, but each participant has the same slope.
+
+
+\newpage
+### The "Random Slopes" Model
+In our Random Slopes model, we estimate an overall intercept and slope and a unique intercept and slope for each participant. These overall intercepts and slopes are the fixed-effects ($B$'s), and deviations away from these values are random-effects ($B + U$'s).
+
+$$y_{ij} = B_0 + U_{0j} + (B_1+ U_{1j})*(TIME_{ij}) + \epsilon_{ij}$$
+
+```{r}
+B2<-lmer(BERG~1+time+(1+time|subID),data=DAT2, REML=FALSE)
+summary(B2)
+```
+
+\newpage
+### Plot of Random Slopes Model for the Berg Balance Scale
+```{r, echo=FALSE, warning=FALSE}
+# We can get the individual intercepts and slope by extracting the 
+# random-effects from the model, B1.
+dd <- ranef(B2)[["subID"]]
+colnames(dd)[1] <- "Intercepts"
+# But these random-effects are deviations from the fixed-effect, so we need
+# to add the fixed-effects back into these deviates to get intercepts and slopes
+# in their original units.
+dd$Intercepts<-dd$Intercepts+27.1662
+dd$time<-dd$time+2.1606
+dd <- cbind(subID=rownames(dd),dd)
+dd
+
+myX<-scale_x_continuous(breaks = 0:12, 
+                        name = "Time (Months from OutPatient Admission)")
+myY<-scale_y_continuous(name = "Berg Balance Scale")
+g1<-ggplot(data=DAT2, aes(x = time, y = BERG, group = subID))
+g2<-g1+geom_point()+facet_wrap(~subID)+myX+myY
+g3<-g2+geom_abline(aes(intercept=Intercepts, slope=time), dd)
+plot(g3)
+```
+Note that in the plot above, each dot represents the actual data for each participant. The lines in each panel, conversely, represent the model's predictions for each participant. Because *B2* is the random-slopes model, our model  predicts different intercepts and slopes for each participant.
+
+\newpage
+### Conditional Models
+These three models (Random Intercepts, Fixed Slopes, and Random Slopes) are our starting models that you will probably end up building in most LMER analyses that you run. These models contain valuable information about the variation within and between participants and essentially become the "models to beat" as you add other variables to your model. For instance, the Random Slopes model accounts for how participants change over time but I might be interested in much more than that. (However, sometimes we might also be interested in testing nonlinear effects of time and random slopes are not enough! You definitely can model time non-linearly, but it is an advanced topic that we will not discuss here.) Below are several types on hypotheses you might be interested in testing in your models:
+
+* Do participants who went to an IRF start with worse BBS scores at admission than participants who did not go to an IRF? (The hypothesis asks about the effects of a *categorical* variable on the *intercepts*.)
+* Do participants who went to an IRF show more rapid improvement in BBS scores over time compared to participants who did not go to an IRF? (The hypothesis asks about the effects of a *categorical* variable on the *slopes*.)
+* Do older participants show show more rapid improvement in BBS scores over time compared to younger participants?  (The hypothesis asks about the effects of a *continuous* variable on the *slopes*.)
+
+And naturally there are many more hypotheses that you might be interested in testing! In general, however, when we are talking about data with two-levels (i.e., time nested within participants) we are usually interested in the effects that other variables have on the intercepts (i.e., does this variable affect where someone starts) and on the slopes (i.e., does this variable affect how someone changes over time). In the code below, we will walk through how to build these models using an exampel of a categorical predictor (IRF stay or not) and a continous predictor (days post-stroke or DPS).
+
+### Does IRF affect the intercept?
+
+$$y_{ij} = B_0 + U_{0j} + (B_1+ U_{1j})*(TIME_{ij}) + \epsilon_{ij}$$
