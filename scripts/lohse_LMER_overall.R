@@ -6,19 +6,19 @@
 getwd()
 setwd("C:/Users/u6015231/Documents/GitHub/LMER_Clinical_Science/")
 
-
 list.files()
 # These are all of the files/folders in the working directory.
 list.files("./data/")
 # These are all of the files in the data sub-folder of the working directory.
 
 
-# install.packages("ggplot2"); install.packages("lme4"); 
-# install.packages("dplyr"); install.packages("AICcmodavg")
+install.packages("ggplot2"); install.packages("lme4"); 
+install.packages("dplyr"); install.packages("AICcmodavg")
 library("ggplot2");library("lme4");library("dplyr");library("AICcmodavg")
 
 
 DATA<-read.csv("./data/data_LOHSE_EXAMPLE.csv", header = TRUE) 
+DATA
 DATA[1:20,c(1,2,4,5,6,8,10,12)]
 # Note that I am calling the dataframe "DATA", but you can call it anything.
 # For the ease of reading, I am also only printing select columns and the 
@@ -27,6 +27,7 @@ DATA[1:20,c(1,2,4,5,6,8,10,12)]
 
 # Note that now I am looking at all of the columns, but only the first six rows.
 head(DATA)
+tail(DATA)
 # The structure function does not show data, but instead shows properties of 
 # the different columns/variables.
 str(DATA)
@@ -38,15 +39,16 @@ g1<-ggplot(data=DATA, aes(x = time, y = BERG, group = subID))+geom_line()
 g2<-g1+geom_point()+facet_wrap(~subID)+myX+myY
 g3<-g2 + stat_smooth(method=lm, se=FALSE)
 plot(g3)
-
+# This is not code. 
 
 ## Creating Tidy Data ----------------------------------------------------------
 head(DATA) # Peak at the top rows.
 tail(DATA) # Peak at the bottom rows.
+DATA$time
 summary(DATA$time) # Using the summary function on a numeric variable
 summary(DATA$event_name) # Using the summary function on a factor variable
 
-
+head(DATA)
 DAT2<-subset(DATA, time != -1)
 head(DAT2)
 
@@ -107,17 +109,20 @@ plot(g8)
 ## Creating a Conditional Plot -------------------------------------------------
 # First we will create a factor out of the IRF variable (which is coded as 
 # 1s and 0s).
+summary(DAT2$IRF)
 DAT2$IRF_Category<-factor(DAT2$IRF)
+summary(DAT2$IRF_Category)
+head(DAT2)
 # Note the the additional shape argument in aes()
 myX<-scale_x_continuous(name = "Time (Months from Outpatient Admission)")
 myY<-scale_y_continuous(name = "Berg Balance Scale Score", limits=c(0,60))
 g1 <- ggplot(data = DAT2, aes(x = time, y = BERG, group=subID, 
-                              shape = IRF_Category)) + geom_point()
+                              shape = IRF_Category)) + geom_point(size=2)
 # We now specify that the linear fit for each participant is conditional on 
 # on whether or not that participant went to an IRF previously.
 g2 <- g1 + geom_smooth(method=lm, se=FALSE, aes(color=IRF_Category)) + myX + myY
 g3 <- g2 + theme_bw()
-print(g2)
+print(g3)
 
 
 ## Building Statistical Models -------------------------------------------------
@@ -137,6 +142,8 @@ B2<-lmer(BERG~1+time+(1+time|subID),data=DAT2, REML=FALSE)
 summary(B2)
 
 
+anova(B0,B1,B2)
+
 
 
 B3<-lmer(BERG~1+time+IRF+(1+time|subID),data=DAT2, REML=FALSE)
@@ -148,8 +155,8 @@ summary(B3)
 B4<-lmer(BERG~1+time*IRF+(1+time|subID),data=DAT2, REML=FALSE)
 summary(B4)
 
-
-
+anova(B2,B3,B4)
+anova(B4)
 
 ## Facet Plot Showing Fixed Effects for Different IRF Groups -------------------
 IRF<-c(0,1)
