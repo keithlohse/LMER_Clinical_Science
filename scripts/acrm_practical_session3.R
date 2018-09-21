@@ -12,7 +12,7 @@ install.packages("dplyr"); install.packages("lmerTest");
 ##----------------------- Data Cleaning and QA ---------------------------------
 ## Setting the Directory -------------------------------------------------------
 getwd()
-setwd("C:/Users/USERNAME/Box Sync/Collaboration/Al Kozlowski/")
+setwd("C:/Users/USERNAME/Box Sync/Collaboration/")
 list.files()
 # Make sure that the file data_session2.csv is saved in your working directory.
 
@@ -67,7 +67,7 @@ plot(g3)
 
 
 
-## FIM scores with data missing random -----------------------------------------
+## FIM scores with data missing not at  random ---------------------------------
 g1<-ggplot(DATA, aes(x = month, y = rasch_FIM_MNAR)) +
   geom_point(aes(fill=as.factor(subID)), pch=21, size=2, stroke=1.25) +
   geom_line(aes(group=subID)) +
@@ -154,9 +154,6 @@ complete<-lmer(rasch_FIM~
                     1+year.0+year.0_sq+year.0_cu+
                     # Random-effects
                     (1+year.0+year.0_sq+year.0_cu|subID), data=DATA, REML=FALSE)
-summary(complete)
-
-
 
 
 
@@ -166,9 +163,6 @@ MAR<-lmer(rasch_FIM_MAR~
                  1+year.0+year.0_sq+year.0_cu+
                  # Random-effects
                  (1+year.0+year.0_sq+year.0_cu|subID), data=DATA, REML=FALSE)
-summary(MAR)
-
-
 
 
 
@@ -178,7 +172,6 @@ MNAR<-lmer(rasch_FIM_MNAR~
                  1+year.0+year.0_sq+year.0_cu+
                  # Random-effects
                  (1+year.0+year.0_sq+year.0_cu|subID), data=DATA, REML=FALSE)
-summary(MNAR)
 
 
 
@@ -188,6 +181,12 @@ LOCF<-lmer(rasch_FIM_LOCF~
              1+year.0+year.0_sq+year.0_cu+
              # Random-effects
              (1+year.0+year.0_sq+year.0_cu|subID), data=DATA, REML=FALSE)
+
+
+
+summary(complete)
+summary(MAR)
+summary(MNAR)
 summary(LOCF)
 
 

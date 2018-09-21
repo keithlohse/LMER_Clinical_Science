@@ -12,7 +12,7 @@ install.packages("dplyr"); install.packages("lmerTest");
 ##----------------------- Data Cleaning and QA ---------------------------------
 ## Setting the Directory -------------------------------------------------------
 getwd()
-setwd("C:/Users/USERNAME/Box Sync/Collaboration/Al Kozlowski/")
+setwd("C:/Users/USERNAME/Box Sync/Collaboration/")
 list.files()
 # Make sure that the file data_session1.csv is saved in your working directory.
 
