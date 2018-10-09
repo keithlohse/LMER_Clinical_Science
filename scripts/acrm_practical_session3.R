@@ -25,7 +25,7 @@ DATA<-read.csv("./data_session3.csv", header = TRUE, sep=",",
 head(DATA)
 
 # Alternately you can also download the data file from the web here:
-# DATA <- read.csv("https://raw.githubusercontent.com/keithlohse/LMER_Clinical_Science/master/data/data_session2.csv")
+# DATA <- read.csv("https://raw.githubusercontent.com/keithlohse/LMER_Clinical_Science/master/data/data_session3.csv")
 # head(DATA)
 
 
