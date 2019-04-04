@@ -18,7 +18,7 @@ list.files()
 
 # Import the .csv file into R. 
 # We will save this file in the R environment as an object called "DATA".
-DATA<-read.csv("./data_session1.csv", header = TRUE, sep=",",  
+DATA<-read.csv("./data/data_session1.csv", header = TRUE, sep=",",  
                na.strings=c("NA","NaN"," ",""))
 
 # Use the head() function to check the structure of the data file.
@@ -30,7 +30,7 @@ head(DATA)
 
 
 ## ----------------------- Basic Data Visualization ----------------------------
-## FIM scores by gender and time -----------------------------------------------
+## FIM scores by time and subject -----------------------------------------------
 g1<-ggplot(DATA, aes(x = month, y = rasch_FIM)) +
   geom_point(aes(fill=as.factor(subID)), pch=21, size=2, stroke=1.25) +
   geom_line(aes(group=subID)) +
