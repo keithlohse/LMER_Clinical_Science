@@ -19,7 +19,7 @@ list.files()
 # Import the .csv file into R. 
 # We will save this file in the R environment as an object called "DATA".
 DATA<-read.csv("./data_session3.csv", header = TRUE, sep=",",  
-               na.strings=c("NA","NaN"," ",""))
+               na.strings=c("NA","NaN"," ",""), stringsAsFactors = TRUE)
 
 # Use the head() function to check the structure of the data file.
 head(DATA)
