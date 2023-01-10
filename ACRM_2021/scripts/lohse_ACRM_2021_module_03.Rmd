@@ -212,7 +212,7 @@ MEAN <- data.frame(year=rep(seq(from=0.0, to=1.5, by=0.1),3))
 MEAN$spline66 <- ifelse(MEAN$year>(8/12), # Test
                         MEAN$year-(8/12), # Value if True
                         0) # Value if False
-MEAN$AIS_grade <- factor(c(rep("C1-4", 16), rep("C5-8",16), rep("paraplegia", 16)))
+MEAN$AIS_grade <- factor(c(rep("C1-4", 16), rep("C5-8",16), rep("T1-S5", 16)))
 
 fixef(mod02)
 
@@ -221,7 +221,7 @@ MEAN$rasch_FIM <- as.numeric(with(MEAN, ifelse(AIS_grade == "C1-4", # Test
                         yes= 8.805181+46.956590*year-39.414498*spline66, 
                         no = ifelse(AIS_grade=="C5-8", 
                                     yes = (8.805181+6.309606)+(46.956590+7.519133)*year+(-39.414498-4.493187)*spline66,
-                                    no = ifelse(AIS_grade=="paraplegia",
+                                    no = ifelse(AIS_grade=="T1-S5",
                                                 yes=(8.805181+13.936953)+(46.956590+10.768901)*year+(-39.414498-5.625241)*spline66,
                                                 no = "ERROR!")
                         ))))
