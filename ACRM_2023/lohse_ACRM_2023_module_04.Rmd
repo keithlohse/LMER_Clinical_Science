@@ -315,7 +315,7 @@ for (size in sample_sizes){
 ```
 
 Converting results from lists to dataframes...
-```{r, converting from lists to dataframes, tidy=TRUE }
+```{r, converting from lists to dataframes, tidy=TRUE}
 # Bind all of our lists together into one big list
 SIM_RESULTS <- list(sample_size=sample_size,
                     iteration=iteration,
