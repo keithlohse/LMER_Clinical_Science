@@ -312,18 +312,22 @@ for (size in sample_sizes){
   }
 }
 
+```
+
+Converting results from lists to dataframes...
+```{r, converting from lists to dataframes, tidy=TRUE }
+# Bind all of our lists together into one big list
 SIM_RESULTS <- list(sample_size=sample_size,
                     iteration=iteration,
                     random_effects=random_effects,
                     fixed_effects=fixed_effects,
                     anova_results=anova_results)
 
+# Flatten out the iteration number and sample size into their own data frame
 SAMP <- data.frame(iteration = as.character(unlist(SIM_RESULTS$iteration)),
                    sample_size = unlist(SIM_RESULTS$sample_size))
-```
 
-Converting results from lists to dataframes...
-```{r, converting from lists to dataframes, tidy=TRUE }
+
 # Tidying the random effects output
 RE_DATA <- bind_rows(SIM_RESULTS$random_effects, .id = "iteration") %>%
   pivot_wider(values_from = vcov:sdcor, names_from = grp:var2, names_sep="_") %>%
