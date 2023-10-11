@@ -200,12 +200,7 @@ set.seed(1)
 p <- round(runif(n=N, min=min_obs, max=max_obs))
 
 # simulate observations per person (everyone has 1st observation)
-time <- unlist(sapply(p, function(x) # p is fed into our function
-  c(1, # everyone has first observation
-    sort(sample(x=2:max_obs, # take samples of size 2 to max observation
-                size = x-1, # sample sizes are the max value of p-1 for each person
-                replace=FALSE)) # sampling WITHOUT replacement
-  )))
+time <- unlist(sapply(p, function(x) c(1, sort(sample(x=2:max_obs, size = x-1, replace=FALSE)))))
 
 # set up data frame
 POP1 <- data.frame(id=factor(rep(1:N, times=p)), time=time) %>%
@@ -247,12 +242,7 @@ set.seed(1)
 p <- round(runif(n=N, min=min_obs, max=max_obs))
 
 # simulate observations per person (everyone has 1st observation)
-time <- unlist(sapply(p, function(x) # p is fed into our function
-  c(1, # everyone has first observation
-    sort(sample(x=2:max_obs, # take samples of size 2 to max observation
-                size = x-1, # sample sizes are the max value of p-1 for each person
-                replace=FALSE)) # sampling WITHOUT replacement
-  )))
+time <- unlist(sapply(p, function(x) c(1, sort(sample(x=2:max_obs, size = x-1, replace=FALSE)))))
 
 # set up data frame
 POP2 <- data.frame(id=factor(rep(1:N, times=p)), time=time)%>%
@@ -279,7 +269,7 @@ POP2$yij <- (beta0 + rep(U[,1], times=p)) +
 ## 3.2 Repeatedly sample from the population (without replacement). 
 Something something something...
 
-```{r, resampling and fitting the model, tidy=TRUE}
+```{r, resampling and fitting the model, tidy=TRUE, warning=FALSE}
 # set sample sizes
 sample_sizes = c(20, 60)
 
@@ -296,11 +286,11 @@ anova_results=NULL
 count=0
 set.seed(1)
 for (size in sample_sizes){
-  print(size)
+  #print(size)
   
   for (i in c(1:k)) {
     count=count+1
-    print(count)
+    #print(count)
     
     # Sample from each population
     SAMP1 <- POP1[POP1$id %in% sample(x=unique(POP1$id), size=size, replace=FALSE),]
@@ -364,7 +354,7 @@ head(ANOVA_DATA)
 
 ## 3.3. Estimated Statistical Power
 Something something something....
-```{r, figure 3, fig.height = 5, fig.width = 5.5, fig.align="center"}
+```{r, figure 3, fig.height = 7, fig.width = 8, fig.align="center", warning=FALSE}
 # Plots showing the estimation of the true parameters ----
 cbPalette <- c("#D55E00", "#56B4E9", "#009E73", "#000000", 
                "#F0E442", "#0072B2", "#E69F00", "#CC79A7",
@@ -426,7 +416,7 @@ B<-ggplot(data=ANOVA_DATA %>% group_by(sample_size, parameter) %>%
 ## 3.4. Sampling Distribution of Fixed-Effect Estimates
 Something something something....
 
-```{r, figure 4, fig.height = 2, fig.width = 8, fig.align="center"}
+```{r, figure 4, fig.height = 3.5, fig.width = 8, fig.align="center", warning=FALSE}
 # Plots showing the estimation of the true parameters ----
 cbPalette <- c("#D55E00", "#56B4E9", "#009E73", "#000000", 
                "#F0E442", "#0072B2", "#E69F00", "#CC79A7",
@@ -505,7 +495,7 @@ FE1|FE2|FE3
 ## 3.5. Sampling Distribution of Random-Effect Estimates
 Something something something....
 
-```{r, figure 5, fig.height = 6, fig.width = 6, fig.align="center"}
+```{r, figure 5, fig.height = 5, fig.width = 6, fig.align="center", warning=FALSE}
 # Plots showing the estimation of the true parameters ----
 cbPalette <- c("#D55E00", "#56B4E9", "#009E73", "#000000", 
                "#F0E442", "#0072B2", "#E69F00", "#CC79A7",
