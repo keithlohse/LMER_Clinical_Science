@@ -29,7 +29,7 @@ Before we get into the details of hypothesis testing with longitudinal data, let
 
 However, we also need to consider what might happen if the null is *not* true. For instance, what if the true mean difference was $\delta$=4 instead of $\delta$=0? If this *alternative hypothesis* was true, then we would expect a distribution of mean differences like the one in red. Under this assumption, 50% of our results are above the statistical significance threshold and 50% are below the threshold. Thus, if $\delta$=4 is true, we will fail to find a statistically significant effect 50% of the time (i.e., we will miss 50% of the time). This miss rate is referred to as the Type II error rate and represented by $\beta$. 
 
-Statistical power is 1-$\beta$. Put another way, statistical power is the probability of obtaining a statistically significant result is a given alternative hypothesis is true. In the figure, statistical power is not very good, because if the true mean difference is $\delta$=4, we will only correctly reject the null hypothesis 50% of the time! 
+Statistical power is 1-$\beta$. Put another way, statistical power is the probability of obtaining a statistically significant result if a given alternative hypothesis is true. In the figure, statistical power is not very good, because if the true mean difference is $\delta$=4, we will only correctly reject the null hypothesis 50% of the time! 
 
 
 ```{r, brief statistical power, results="hide", message = FALSE, echo=TRUE, warning=FALSE, tidy=TRUE}
@@ -77,7 +77,7 @@ There are many tools that provide *analytical* solutions to statistical power in
 
 Far from being impossible however, I would encourage you to think about statistical power in mixed-models as "squishy". For instance, flexibility in the structure of the random effects or choices in the methods of estimation can lead to different p-values. However, there are definitely some *incorrect* approaches (e.g., under-specified or mis-specified random effects) and being able to simulate your own data then allows you to test the effect of your different modelling choices on the outcome. 
 
-In this section, we will simulated a relatively simple longitudinal data structure with 4-5 observations for 10 individuals. The data are missing at random with the exception of every participant having the first observation. In the code chunk below, we set the number of individuals, the values for the fixed effects, and the values for the random effects.
+In this section, we will simulate a relatively simple longitudinal data structure with 4-5 observations for 10 individuals. The data are missing at random with the exception of every participant having the first observation. In the code chunk below, we set the number of individuals, the values for the fixed effects, and the values for the random effects.
 
 ```{r, setting initial parameters, tidy=TRUE}
 
@@ -177,9 +177,9 @@ You can tinker with the values for the fixed effects, random effects, and errors
 
 # 3. Simulating Two Different Populations and Resampling to Estimate Power
 ## 3.1 Setting the population parameters.
-Something something something...
+Next, we will build on the same example above to simulate two different populations. The first population ($POP1$) will have true intercept of 50 (sd = 10) and a true slope of 0 (sd=5). 
 
-```{r, simulating two different populations, tidy=TRUE}
+```{r, simulating population 1, tidy=TRUE}
 # 1.0 Set the parameters for Population 1 ----
 N <- 10000 # set number of individuals
 
@@ -221,12 +221,17 @@ POP1$eij <- rnorm(n=nrow(POP1), mean=0, sd=sigma)
 
 POP1$yij <- (beta0 + rep(U[,1], times=p)) + 
   (beta1 + rep(U[,2], times=p)) * POP1$time + POP1$eij
+```
 
+
+The second population ($POP2$) will have true intercept of 50 (sd = 10) and a true slope of 2.5 (sd=5). 
+
+```{r, simulating population 2, tidy=TRUE}
 # 2.0 Set the parameters for Population 2 ----
 N <- 10000 # set number of individuals
 
 beta0 <- 50.0 # true intercept
-beta1 <- 5.0 # true slope
+beta1 <- 2.5 # true slope
 
 sigma <- 5  # true error SD
 tau0  <- 10    # true intercept SD
@@ -267,15 +272,23 @@ POP2$yij <- (beta0 + rep(U[,1], times=p)) +
 
 
 ## 3.2 Repeatedly sample from the population (without replacement). 
-Something something something...
+With these two populations in place, we will now repeatedly sample from each population (with replacement) to simulated experiments. In this case, I am going to take samples of two different sizes to ($n/group=20$ and $n/group=60$) to illustrate the effects that sample size has on statistical power. For each sample size, we will run $k=1000$ simulations. All of these parameters can be controlled in the code below so that you can simulate samples of whatever sizes you wish (and more than two sample size if you wish) and obtain answers with varying degrees of precision. Setting $k=1000$ should give us good precision, but it will take time. If you wanted to take a lot of sample size at once, it is a good idea to reduce $k$ so that the code will run faster (e.g., $k=500$ or $k=100$ if a lot of different sample sizes are being tested). Then, once decide how many sample sizes are really needed (some may be obviously too small or two big) then you can increase $k$ again to obtain precise results for the most interesting cases.  
 
-```{r, resampling and fitting the model, tidy=TRUE, warning=FALSE}
+```{r, resampling both populations, tidy=TRUE, warning=FALSE}
 # set sample sizes
 sample_sizes = c(20, 60)
 
 # set number of iterations at each sample size
 k = 1000
+```
 
+With the sample sizes and number of iterations in place for our simulations, next we will create a dataframe to store the results from our mixed model. In this case, we are fitting a relatively simply model with a Group x Time interaction and a random intercept of time: $yij~1+time*group+(1+time|id)$. 
+
+You could adjust the code to fit a more complicated model depending on the kind of data you generate in the previous steps. Our "ground truth" was a linear effect of time, so that is all we will model here. If you had used polynomial effects (or truly nonlinear effects) in the population, then you would fit a similar model here.
+
+Because the outputs are being stored as *lists* the code is very flexible and can handle models with many different kinds of parameters. 
+
+```{r, fitting the model, tidy=TRUE, warning=FALSE}
 # initialize null variables to populate:
 sample_size = NULL
 iteration = NULL
@@ -314,7 +327,7 @@ for (size in sample_sizes){
 
 ```
 
-Converting results from lists to dataframes...
+The sample size, iteration number, variance-covariance matrix for the random effects, parameter estimates and standard errors for the fixed effects, and the ANOVA table summarizing the results are all stored as lists from every iteration. To make these results a little easier to work with for plotting and exporting, we will gather the smaller *lists* into a master list, and the flatten out parts of that list into *dataframes*: 
 ```{r, converting from lists to dataframes, tidy=TRUE}
 # Bind all of our lists together into one big list
 SIM_RESULTS <- list(sample_size=sample_size,
@@ -348,10 +361,20 @@ ANOVA_DATA <- bind_rows(SIM_RESULTS$anova_results, .id = "iteration")   %>%
   mutate(parameter=str_split(parameter, "\\.{2,}", simplify = TRUE)[,1]) %>%
   left_join(SAMP, by="iteration") %>%
   relocate(iteration, sample_size)
+```
 
-
+Let's look at the first few rows of the cumulative random-effects data:
+```{r, random effects dataframe, tidy=TRUE}
 head(RE_DATA)
+```
+
+The first few rows of the cumulative fixed effects data:
+```{r, random effects dataframe, tidy=TRUE}
 head(FE_DATA)
+```
+
+And the first few rows of the cumulative ANOVA data:
+```{r, random effects dataframe, tidy=TRUE}
 head(ANOVA_DATA)
 ```
 
