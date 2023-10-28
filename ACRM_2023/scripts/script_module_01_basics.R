@@ -4,9 +4,30 @@ library("car"); library("dplyr");
 library("lmerTest");
 
 # If these packages are not installed already, run the following code: 
-install.packages("ggplot2"); install.packages("lme4"); 
-install.packages("car"); install.packages("dplyr"); 
-install.packages("lmerTest");
+#install.packages("ggplot2"); install.packages("lme4"); 
+#install.packages("car"); install.packages("dplyr"); 
+#install.packages("lmerTest");
+
+# We will read these data in from the web:
+DATA <- read.csv("https://raw.githubusercontent.com/keithlohse/LMER_Clinical_Science/master/ACRM_2018/data/data_session1.csv",
+                 stringsAsFactors = TRUE, na.strings=c("NA","NaN"," ",""))
+# Use the head() function to check the structure of the data file. 
+head(DATA)
+
+# # Alternatively, if you want to download the data to a local folder, you will 
+# # need to set the appropriate directory and then read in the data file, as 
+# # illustrated by the code below:
+# # Note, if you already downloaded the data from the web, you can skip this step.
+# getwd() 
+# setwd("C:/Users/Folder/SubFolder/SubSubFolder/") 
+# list.files() 
+# # Make sure that the file data_session1.csv is saved in your working directory. 
+# # Import the .csv file into R. 
+# # We will save this file in the R environment as an object called "DATA". 
+# DATA<-read.csv("./data_session1.csv", header = TRUE, sep=",", 
+#                stringsAsFactors=TRUE, na.strings=c("NA","NaN"," ","")) 
+# # Use the head() function to check the structure of the data file. 
+# head(DATA) 
 
 ## ----------------------- Basic Data Visualization ------------------------- 
 ## FIM scores by group and time -------------------------------------------- 
