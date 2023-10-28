@@ -271,7 +271,7 @@ POP2$yij <- (beta0 + rep(U[,1], times=p)) +
 ```
 
 
-## 3.2 Repeatedly sample from the population (without replacement). 
+## 3.2 Repeatedly sample from the population (with replacement). 
 With these two populations in place, we will now repeatedly sample from each population (with replacement) to simulated experiments. In this case, I am going to take samples of two different sizes to ($n/group=20$ and $n/group=60$) to illustrate the effects that sample size has on statistical power. For each sample size, we will run $k=1000$ simulations. All of these parameters can be controlled in the code below so that you can simulate samples of whatever sizes you wish (and more than two sample size if you wish) and obtain answers with varying degrees of precision. Setting $k=1000$ should give us good precision, but it will take time. If you wanted to take a lot of sample size at once, it is a good idea to reduce $k$ so that the code will run faster (e.g., $k=500$ or $k=100$ if a lot of different sample sizes are being tested). Then, once decide how many sample sizes are really needed (some may be obviously too small or two big) then you can increase $k$ again to obtain precise results for the most interesting cases.  
 
 ```{r, resampling both populations, tidy=TRUE, warning=FALSE}
@@ -327,7 +327,7 @@ for (size in sample_sizes){
 
 ```
 
-The sample size, iteration number, variance-covariance matrix for the random effects, parameter estimates and standard errors for the fixed effects, and the ANOVA table summarizing the results are all stored as lists from every iteration. To make these results a little easier to work with for plotting and exporting, we will gather the smaller *lists* into a master list, and the flatten out parts of that list into *dataframes*: 
+The sample size, iteration number, variance-covariance matrix for the random effects, parameter estimates and standard errors for the fixed effects, and the ANOVA table summarizing the results are all stored as lists from every iteration. To make these results a little easier to work with for plotting and exporting, we will gather the smaller *lists* into a master list, and the flatten out parts of that list into *data frames*: 
 ```{r, converting from lists to dataframes, tidy=TRUE}
 # Bind all of our lists together into one big list
 SIM_RESULTS <- list(sample_size=sample_size,
@@ -369,18 +369,18 @@ head(RE_DATA)
 ```
 
 The first few rows of the cumulative fixed effects data:
-```{r, random effects dataframe, tidy=TRUE}
+```{r, fixed effects dataframe, tidy=TRUE}
 head(FE_DATA)
 ```
 
 And the first few rows of the cumulative ANOVA data:
-```{r, random effects dataframe, tidy=TRUE}
+```{r, anova effects dataframe, tidy=TRUE}
 head(ANOVA_DATA)
 ```
 
 
 ## 3.3. Estimated Statistical Power
-Something something something....
+From these cumulative statistics, we can estimate statistical power for each of our effects. For instance, we can plot the p-values from the F-tests for the main-effect of $Group$, the main effect of $Time$ and the $Group x Time$ interaction. You can see that with $n/group=20$ we do not have good statistical power to detect our anticipated effect, but with $n/group=60$, we are approaching 80% statistical power (which is a commonly used benchmark).
 ```{r, figure 3, fig.height = 7, fig.width = 8, fig.align="center", warning=FALSE}
 # Plots showing the estimation of the true parameters ----
 cbPalette <- c("#D55E00", "#56B4E9", "#009E73", "#000000", 
@@ -441,8 +441,7 @@ B<-ggplot(data=ANOVA_DATA %>% group_by(sample_size, parameter) %>%
 
 
 ## 3.4. Sampling Distribution of Fixed-Effect Estimates
-Something something something....
-
+We can also use these cumulative statistics to see the distribution of the estimates for the fixed effects from all of our models. Note that each distribution is centered on the true value that we programmed in, but the width of each distribution will depend on the variance and the size of the sample we chose. 
 ```{r, figure 4, fig.height = 3.5, fig.width = 8, fig.align="center", warning=FALSE}
 # Plots showing the estimation of the true parameters ----
 cbPalette <- c("#D55E00", "#56B4E9", "#009E73", "#000000", 
@@ -520,7 +519,7 @@ FE1|FE2|FE3
 ```
 
 ## 3.5. Sampling Distribution of Random-Effect Estimates
-Something something something....
+Similarly we can see our estimates of the variance components from the random effects data. As above, that each distribution is centered on the true value of the variance (or covariance) that we programmed in, but the width of each distribution will depend on the variance and the size of the sample we chose. 
 
 ```{r, figure 5, fig.height = 5, fig.width = 6, fig.align="center", warning=FALSE}
 # Plots showing the estimation of the true parameters ----
